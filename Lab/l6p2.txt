@@ -1,0 +1,198 @@
+use lukewarm_durianpc;
+
+-- 1. Obtain the number of staff members working in the south region of the Lukewarm Kingdom.
+-- SELECT count(account) as number_of_staffs FROM 
+-- 	staff INNER JOIN office ON (staff.office_id = office.id)
+-- 		INNER JOIN work_place ON (office.work_place = work_place.name)
+-- WHERE
+-- 	postcode LIKE 'LS%';
+
+-- Get the pc model with the least defects and find out its part that have the most cases of defects 
+
+-- step 1. get pc models with defect part counts
+select pc.model, count(part.defective) from
+	pc inner join part on (pc.serial = part.pc_serial)
+group by pc.model;
+
+-- step 2. select pc with least defects
+select t.model from
+	(select pc.model, count(part.defective) as defect_count from
+		pc inner join part on (pc.serial = part.pc_serial)
+		group by pc.model) as t
+where
+	t.defect_count <= all (
+		select count(part.defective) from
+			pc inner join part on (pc.serial = part.pc_serial)
+			group by pc.model
+	);
+
+-- step 3. find out the count of failure parts of that pc, based on the model
+select part.model_no, count(part.serial) as part_failure_count from
+	pc inner join part on (pc.serial = part.pc_serial)
+where
+	pc.model in (
+		select t.model from
+			(select pc.model, count(part.defective) as defect_count from
+				pc inner join part on (pc.serial = part.pc_serial)
+				group by pc.model) as t
+		where
+			t.defect_count <= all (
+				select count(part.defective) from
+					pc inner join part on (pc.serial = part.pc_serial)
+					group by pc.model
+			)
+	)
+	and part.defective = 1
+group by
+	part.model_no
+order by part_failure_count desc;
+
+-- step 4. find out the part model that has the most defect counts
+-- same logic as "select pc with least defects"
+-- The statements above have not been fully tested because I didn't fill in enough data for this question
+-- It requires way too much information to test, and this is why I decided to remove it from the part 2
+
+
+-- Get the retail store(s) that has sold the most amount of powerhouse laptops.
+-- In the result, list the name(s) of the retail store(s) and the amount sold (for each, if multiple retail stores a found).
+select * from
+	(select wp.name, count(pc.serial) as quantity from 
+		pc inner join work_place wp on (pc.sold_at = wp.name)
+	where
+		wp.is_retail = 1 and pc.model like 'LC%P'
+	group by
+		wp.name) as t
+where
+	t.quantity >= 
+		all (select count(t1.serial) from 
+				pc t1 inner join work_place t2 on (t1.sold_at = t2.name)
+			where
+				t2.is_retail = 1 and t1.model like 'LC%P'
+			group by
+				t2.name);
+
+
+
+-- Get the staff names and the departments associated with the email account "manager.club@durian.pc".
+select staff.name, dept_role.dept_name from 
+	email_staff_assign
+		inner join staff on (email_staff_assign.account = staff.account)
+		inner join staff_role on (staff.account = staff_role.staff_account)
+		inner join dept_role on (staff_role.role_id = dept_role.id)
+where
+	email_staff_assign.email = 'manager.club@durian.pc';
+
+-- List all staff members in the finance department 
+-- whose current baseline salary is higher than the highest base salary of the sales department.
+select staff.name, staff.current_salary_base from
+	staff inner join staff_role on (staff.account = staff_role.staff_account)
+		inner join dept_role on (staff_role.role_id = dept_role.id)
+where
+	dept_role.dept_name = 'Finance' and staff.current_salary_base > all (
+		select staff.current_salary_base from 
+			staff inner join staff_role on (staff.account = staff_role.staff_account)
+				inner join dept_role on (staff_role.role_id = dept_role.id)
+		where
+			dept_role.dept_name = 'Sales'
+	);
+
+-- Get the list of email accounts for those who work 
+--    in an office alone (share no office with others).
+--    No duplicate names are allowed in the result.
+select distinct email_staff_assign.email from
+	(staff as s1 inner join office on (s1.office_id = office.id)
+		inner join email_staff_assign on (s1.account = email_staff_assign.account))
+		inner join email on (email_staff_assign.email = email.email_addr)
+where
+	s1.name = all(select s2.name from staff as s2 where s1.office_id = s2.office_id);
+-- and email.`type` = 'personal';
+
+-- Get the difference between the highest baseline salary value and 
+-- the second highest baseline salary value of all staff members. 
+select max(s2.current_salary_base)- max(s1.current_salary_base) as difference from 
+	staff as s1, staff as s2
+where
+	s1.current_salary_base < (select max(s3.current_salary_base) from staff as s3);
+
+-- Get the list of all staff members who once did quality checking in the factory,
+--    but then changed to a different role and have worked as the new role for at least for one month.
+-- !!! you cannot use payroll.staff_role, because that does not indicate that the staff actually checked something.
+select distinct staff.name, staff.account from 
+	pc inner join staff on (pc.qa_staff = staff.account)
+		inner join payroll on (staff.account = payroll.staff_account)
+		inner join staff_role on (staff.account = staff_role.staff_account)
+		inner join dept_role on (staff_role.role_id = dept_role.id)
+where
+	dept_role.name <> 'QA staff' and payroll.payment_date > pc.qa_time;
+
+-- three consecutive
+drop table if exists staff_awards;
+create table staff_awards 
+(
+	staff varchar(50),
+	outstanding_month int
+);
+
+insert into staff_awards values
+('Tessa Payne', 5),
+('Tessa Payne', 6),
+('Lily Adel', 1),
+('Lily Adel', 2),
+('Tessa Payne', 8),
+('Lily Adel', 3),
+('Tessa Payne', 9);
+
+select distinct a1.staff from 
+	staff_awards a1, staff_awards a2, staff_awards a3
+where
+	(a1.staff = a2.staff and a2.staff = a3.staff)
+	and 
+	a1.outstanding_month + 1 = a2.outstanding_month 
+	and
+	a1.outstanding_month + 2 = a3.outstanding_month
+
+-- Calculate the final salary of all staffs. 
+-- In the result, list staff names and their final salary, 
+-- taking all factors like bonuses, work-in-south bonuses (10%)
+-- and sick leave penalties (90%) into account.
+
+select 
+	account,
+	current_salary_base + bonus + south_bonus - sick_deduction as final_salary 
+from
+	(select
+		staff.account, staff.current_salary_base,
+		staff.current_salary_base * staff.current_salary_bonus as bonus,
+		staff.current_salary_base * (t.is_south * 0.1) as south_bonus,
+		(staff.current_salary_base + 
+			staff.current_salary_base * staff.current_salary_bonus +
+			staff.current_salary_base * (t.is_south * 0.1)) * (staff.is_on_sick_leave * 0.1) as sick_deduction,
+		staff.is_on_sick_leave
+	from 
+		(work_place 
+			natural join (select name, 1 as is_south from work_place where postcode like 'LS%'
+							union
+							select name, 0 as is_south from work_place where postcode not like 'LS%') as t)
+			inner join office on office.work_place = work_place.name
+			inner join staff on office.id = staff.office_id
+	) as temp;
+
+
+-- alternative solution
+select 
+	account,
+	current_salary_base + bonus + south_bonus - sick_deduction as final_salary 
+from
+	(select
+		staff.account, staff.current_salary_base,
+		staff.current_salary_base * staff.current_salary_bonus as bonus,
+		staff.current_salary_base * (t.is_south * 0.1) as south_bonus,
+		(staff.current_salary_base + 
+			staff.current_salary_base * staff.current_salary_bonus +
+			staff.current_salary_base * (t.is_south * 0.1)) * (staff.is_on_sick_leave * 0.1) as sick_deduction
+	from 
+		(work_place 
+			natural join (select name, postcode like 'LS%' as is_south from work_place) as t)
+			inner join office on office.work_place = work_place.name
+			inner join staff on office.id = staff.office_id
+	) as temp;

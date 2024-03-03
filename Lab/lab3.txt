@@ -1,0 +1,96 @@
+-- Script for lab3
+-- Author: Jianjun Chen (jianjun.chen@xjtlu.edu.cn)
+create database if not exists jianjun;
+use jianjun;
+
+drop table if exists cd, artist;
+
+create table `artist` (
+	`artid` int primary key,
+	`artname` varchar(100)
+);
+
+insert into `artist` values
+(6,'Animal Collective'),
+(3,'Deadmau5'),
+(7,'Kings of Leon'),
+(4,'Mark Ronson'),
+(5,'Mark Ronson & The Business Intl'),
+(8,'Maroon 5'),
+(2,'Mr Scruff'),
+(1,'Muse');
+
+create table `cd` (
+	`cdid` int primary key,
+	`artid` int,
+	`cdtitle` varchar(100),
+	`cdprice` double,
+	`cdgenre` varchar(50),
+	`cdnumtracks` int,
+	constraint fk_cd foreign key (`artid`) references `artist` (`artid`)
+);
+
+insert into `cd` values
+(1,1,'Black Holes and Revelations',9.99,'Rock',NULL),
+(2,1,'The Resistance',11.99,'Rock',NULL),
+(3,2,'Ninja Tuna',9.99,'Electronica',NULL),
+(4,3,'For Lack of a Better Name',9.99,'Electro House',NULL),
+(5,4,'Version',12.99,'Pop',NULL),
+(6,5,'Record Collection',11.99,'Alternative Rock',NULL),
+(7,6,'Merriweather Post Pavilion',12.99,'Electronica',NULL),
+(8,7,'7 Only By The Night',9.99,'Rock',NULL),
+(9,7,'Come Around Sundown',12.99,'Rock',NULL),
+(10,8,'Hands All Over',11.99,'Pop',NULL);
+
+-- Task 1
+-- a.	List the titles and prices of CDs in order of price from highest to lowest.
+select cdtitle, cdprice from cd order by cdprice desc;
+
+-- b.	List the Artist Name, Titles and the Price of CDs in alphabetical order by artist name. 
+-- The Price of the CD should be returned in a column called ‘Full Price’ with tax (20%) included - the cd price in the database is not inclusive of tax.
+select artname, cdtitle, (cdprice * 1.2) as `full price` from cd, artist where cd.artid = artist.artid;
+
+-- c.	List the titles, genres and prices CDs in alphabetical order by genre,
+-- then by price from the highest price to the lowest one.
+select cdtitle, cdgenre, cdprice from cd order by cdgenre ASC, cdprice DESC;
+
+
+-- Task 2
+-- a.	Find the lowest price of any CD. The result should be presented in a column named ‘Cheapest CD’
+select cdtitle as `Cheapest CD` from cd where cdprice <= all(select cdprice from cd);
+
+select min(cdprice) as `Cheapest CD` from cd; -- in case you have a different understanding of this question.
+
+-- b.	Identify the difference between the most expensive and cheapest CD.
+--  The result should be presented in a column named ‘CD Price Range’.
+select (max(cdprice) - min(cdprice)) as 'CD Price Range' from cd;
+
+-- c.	Find the number of CDs costing 9.99. The result should be presented in a column named ‘Count of £9.99 CD’s’
+select (count(cdtitle)) as 'Count of $9.99 CD\'s' from cd where cdprice = 9.99;
+
+-- d.	Find the title of the most expensive Electronica CD(s).
+select cdtitle from cd where cdprice >= all (select cdprice from cd where cdgenre = 'Electronica') and cdgenre = 'Electronica';
+
+-- e.	Find the number of different Prices in the CD table.
+select count(distinct cdprice) from cd;
+
+select count(cdprice) from (select distinct cdprice from cd) as x;
+
+-- f.	List all the information about the cheapest (lowest priced) CDs.
+select * from cd, artist where cd.artid = artist.artid and cdprice <= all(select cdprice from cd);
+
+
+-- Task 3
+
+-- a.	Find a list of artist names, the number of CDs they have produced, and the average price for their CDs. 
+--      Only return results for artists with more than one CD. The results should be in the following format:
+--      ||   Artist |  Average CD Price  | Number of CD’s  ||
+select artist.artname as `Artist`, AVG(cdprice) as `Average CD price`, COUNT(cdid) as `Number of CDs`
+	from cd, artist where cd.artid = artist.artid group by artist.artname having `Number of CDs` > 1;
+
+-- b.	Find a list of artist names, the number of CDs by that artist and the average price for their CDs 
+--      but not including ‘Electronica’ albums (you might like to use a WHERE in this one too).
+--      The results should be in the following format:
+--      ||  Artist | Average CD Price | Number of CD’s ||
+select artist.artname as `Artist`, AVG(cdprice) as `Average CD price`, COUNT(cdid) as `Number of CDs`
+	from cd, artist where cd.artid = artist.artid and cdgenre <> 'Electronica' group by artist.artname;

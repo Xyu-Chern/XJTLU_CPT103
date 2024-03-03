@@ -1,0 +1,704 @@
+-- Table definitions for coursework 3
+use lukewarm_durianpc;
+
+SET FOREIGN_KEY_CHECKS = 0;
+drop table if exists work_place, office, department, dept_role, staff, payroll, staff_role, email, email_staff_assign, pc_models, pc, part_model, part, part_manufacturer;
+SET FOREIGN_KEY_CHECKS = 1;
+
+create table work_place
+(
+	name varchar(100) primary key, -- such as HQ, factory, xxx retail store etc. 
+	address varchar(255),
+	postcode varchar(20) UNIQUE,
+	is_retail tinyint -- 0: false,  1: true
+);
+
+insert into work_place values 
+('HQ', 'HQ address', 'LC61388', 0),
+('Factory', 'Factory address', 'LN83289', 0),
+('Jujube Square Retail', 'Jujube road', 'LC12LS4', 1),
+('Daisy Road Retail', 'Daisy road', 'LN553LS', 1),
+('Jasmine Hill Retail', 'Jasmine hill road', 'LE72113', 1),
+('Southern Park Retail', 'Southern park north gate', 'LS77653', 1),
+('Maine Coon Retail', 'Meow mall road', 'LS89G11', 1),
+('Rift Bridge Retail', 'Good will road', 'LS02133', 1);
+
+create table office
+(
+    id int primary key,  -- you can also use (room, address_info).
+    room smallint, 
+    work_place varchar(100),
+    constraint fk_office_wp foreign key (work_place) references work_place(name)
+);
+
+insert into office values
+(0, 505, 'HQ'), (1, 402, 'HQ'), (2, 401, 'HQ'), (3, 403, 'HQ'), (4, 404, 'HQ'), (5, 405, 'HQ'), -- HQ
+(6, 201, 'Factory'), (7, 202, 'Factory'), (8, 203, 'Factory'), (9, 204, 'Factory'), -- Factory
+(10, null, 'Jujube Square Retail'),
+(11, null, 'Daisy Road Retail'), 
+(12, null, 'Jasmine Hill Retail'), 
+(13, null, 'Southern Park Retail'), -- South region
+(14, null, 'Maine Coon Retail'), -- South region
+(15, null, 'Rift Bridge Retail'); -- South region
+
+create table department
+(
+	name varchar(200) primary key,
+	description text
+);
+
+insert into department values
+('Sales', 'sales dept description'), ('Finance', 'finance dept description'), 
+('IT', 'IT dept description'), ('HR', 'HR dept description'),
+('Manufacturing', 'mfg dept description');
+
+-- Table for all roles in the company
+create table dept_role
+(
+    id int primary key,
+	name varchar(50), -- cannot use name, because some names might exist in multiple departments (like 'manager')
+	                  -- unless you use 'xxx_manager'.
+	dept_name varchar(200),
+	constraint fk_role_dept foreign key (dept_name) references department(name),
+    description text
+);
+
+insert into dept_role values
+(0, 'manager', 'Sales', 'sales manager'), (1, 'staff', 'Sales', 'retail store staff'), -- sales
+(2, 'manager', 'Finance', 'finance manager'), (3, 'accountant', 'Finance', 'finance accountant'), -- finance
+(4, 'receptionist', 'IT', 'IT receptionist'), (5, 'staff', 'IT', 'IT staff'), -- IT
+(6, 'manager', 'HR', 'HR manager'), (7, 'staff', 'HR', 'HR staff'), -- HR
+(8, 'manager', 'Manufacturing', 'Mfg. manager'), (9, 'QA staff', 'Manufacturing', 'Mfg. QA staff');
+
+create table staff
+(
+	account varchar(15) primary key, -- you can also add an ID to staff and use that as primary key
+	password_md5 char(32),  -- assume the password is stored as md5, which always occupies 32 chars.
+	name varchar(200),
+	current_salary_base double,
+	current_salary_bonus double, -- bonuses are expressed as percentages like 20% (0.20), not 120% (1.2).
+	is_on_sick_leave TINYINT, -- whether the staff is on sick leave. 0: false, 1: true
+	office_id int,
+	constraint fk_staff_office foreign key (office_id) references office(id)
+);
+
+insert into staff values
+('SM0001', null, 'Sales manager1', 4000.0, 0.15, 0, 0),
+('FM0001', null, 'Finance manager1', 5000.0, 0.10, 0, 1),
+('FS0001', null, 'Finance staff1', 4100.0, 0.11, 0, 1),
+('FS0002', null, 'Finance staff2', 4100.0, 0.11, 0, 1),
+('FS0003', null, 'Finance staff3', 3000.0, 0.11, 0, 1),
+('FS0004', null, 'Finance staff4', 3000.0, 0.20, 0, 1),
+('FS0005', null, 'Finance staff5', 3000.0, 0.18, 0, 1),
+('FS0006', null, 'Finance staff6', 3000.0, 0.18, 0, 1),
+('FS0007', null, 'Finance staff7', 3000.0, 0.17, 0, 1),
+('FS0008', null, 'Finance staff8', 3000.0, 0.16, 0, 1),
+('FS0009', null, 'Finance staff9', 3000.0, 0.17, 0, 1),
+('IR0001', null, 'IT receptionist1', 2100.0, 0.15, 0, 2),
+('IR0002', null, 'IT receptionist2', 2200.0, 0.15, 0, 2),
+('IR0003', null, 'IT receptionist3', 2100.0, 0.15, 0, 2),
+('IS0001', null, 'IT staff1', 2300.0, 0.15, 0, 2),
+('IS0002', null, 'IT staff2', 2400.0, 0.15, 0, 2),
+('IS0003', null, 'IT staff3', 2500.0, 0.15, 0, 2),
+('IS0004', null, 'IT staff4', 2300.0, 0.15, 0, 2),
+('IS0005', null, 'IT staff5', 2400.0, 0.15, 0, 2),
+('IS0006', null, 'IT staff6', 2500.0, 0.15, 0, 2),
+('HM0001', null, 'HR manager', 5000.0, 0.15, 0, 3),
+('HS0001', null, 'HR staff1', 2300.0, 0.15, 0, 4),
+('HS0002', null, 'HR staff2', 2500.0, 0.15, 0, 4),
+('HS0003', null, 'HR staff3', 2600.0, 0.15, 0, 4),
+('HS0004', null, 'HR staff4', 2500.0, 0.15, 0, 4),
+('HS0005', null, 'HR staff5', 2400.0, 0.15, 0, 4),
+('MM0001', null, 'Mfg. manager', 2000.0, 0.15, 0, 3),
+('MS0001', null, 'Mfg. QA staff1', 2700.0, 0.11, 0, 6),
+('MS0002', null, 'Mfg. QA staff2', 2700.0, 0.11, 0, 6),
+('MS0003', null, 'Mfg. QA staff3', 2700.0, 0.11, 1, 6),
+('MS0004', null, 'Mfg. QA staff4', 2700.0, 0.11, 0, 7),
+('MS0005', null, 'Mfg. QA staff5', 2700.0, 0.11, 0, 7),
+('MS0006', null, 'Mfg. QA staff6', 2700.0, 0.12, 0, 8),
+('MS0007', null, 'Mfg. QA staff7', 2700.0, 0.11, 0, 8),
+('MS0008', null, 'Mfg. QA staff8', 2700.0, 0.12, 0, 8),
+('MS0009', null, 'Mfg. QA staff9', 2700.0, 0.11, 0, 9),
+('MS0010', null, 'Mfg. QA staff10', 2800.0, 0.11, 0, 9),
+('MS0011', null, 'Mfg. QA staff11', 2800.0, 0.11, 0, 9),
+('MS0012', null, 'Mfg. QA staff12', 2800.0, 0.11, 1, 9),
+('MS0013', null, 'Mfg. QA staff13', 2800.0, 0.11, 1, 9),
+('SS0001', null, 'Retail Sales Staff 1', 2000.0, 0.10, 0, 10),
+('SS0002', null, 'Retail Sales Staff 2', 2100.0, 0.12, 0, 10),
+('SS0003', null, 'Retail Sales Staff 3', 2310.0, 0.00, 1, 11),
+('SS0004', null, 'Retail Sales Staff 4', 2210.0, 0.18, 0, 11),
+('SS0005', null, 'Retail Sales Staff 5', 2100.0, 0.18, 0, 11),
+('SS0006', null, 'Retail Sales Staff 6', 2600.0, 0.19, 1, 12),
+('SS0007', null, 'Retail Sales Staff 7', 2000.0, 0.10, 0, 12),
+('SS0008', null, 'Retail Sales Staff 8', 2100.0, 0.12, 0, 13),
+('SS0009', null, 'Retail Sales Staff 9', 2310.0, 0.00, 1, 13),
+('SS0010', null, 'Retail Sales Staff 10', 2210.0, 0.18, 0, 13),
+('SS0011', null, 'Retail Sales Staff 11', 2210.0, 0.18, 0, 13),
+('SS0012', null, 'Retail Sales Staff 12', 2100.0, 0.18, 0, 13),
+('SS0013', null, 'Retail Sales Staff 13', 2100.0, 0.18, 0, 14),
+('SS0014', null, 'Retail Sales Staff 14', 2100.0, 0.18, 0, 14),
+('SS0015', null, 'Retail Sales Staff 15', 2100.0, 0.18, 0, 14),
+('SS0016', null, 'Retail Sales Staff 16', 2100.0, 0.18, 0, 15),
+('SS0017', null, 'Retail Sales Staff 17', 2100.0, 0.18, 0, 15),
+('SS0018', null, 'Retail Sales Staff 18', 2100.0, 0.18, 0, 15),
+('SS0019', null, 'Retail Sales Staff 19', 2600.0, 0.19, 1, 15);
+
+
+-- added this table so that a staff can have more than one roles in his dept.
+create table staff_role
+(
+    staff_account varchar(15),
+    constraint fk_sr_staff foreign key (staff_account) references staff(account),
+    role_id int,
+    constraint fk_sr_role foreign key (role_id) references dept_role(id)
+);
+
+insert into staff_role values
+('SM0001', 0),
+('FM0001', 2),
+('FS0001', 3),
+('FS0002', 3),
+('FS0003', 3),
+('FS0004', 3),
+('FS0005', 3),
+('FS0006', 3),
+('FS0007', 3),
+('FS0008', 3),
+('FS0009', 3),
+('IR0001', 4),
+('IR0002', 4),
+('IR0003', 4),
+('IS0001', 5),
+('IS0002', 5),
+('IS0003', 5),
+('IS0004', 5),
+('IS0005', 5),
+('IS0006', 5),
+('HM0001', 6),
+('HS0001', 7),
+('HS0002', 7),
+('HS0003', 7),
+('HS0004', 7),
+('HS0005', 7),
+('MM0001', 8),
+('MS0001', 9),
+('MS0002', 9),
+('MS0003', 9),
+('MS0004', 9),
+('MS0005', 9),
+('MS0006', 9),
+('MS0007', 9),
+('MS0008', 9),
+('MS0009', 9),
+('MS0010', 9),
+('MS0011', 9),
+('MS0012', 9),
+('MS0013', 9),
+('SS0001', 1),
+('SS0002', 1),
+('SS0003', 1),
+('SS0004', 1),
+('SS0005', 1),
+('SS0006', 1),
+('SS0007', 1),
+('SS0008', 1),
+('SS0009', 1),
+('SS0010', 1),
+('SS0011', 1),
+('SS0012', 1),
+('SS0013', 1),
+('SS0014', 1),
+('SS0015', 1),
+('SS0016', 1),
+('SS0017', 1),
+('SS0018', 1),
+('SS0019', 1);
+
+create table payroll
+(
+    staff_account varchar(15),
+    bank_account varchar(20), -- assume the registered bank account can be changed.
+    staff_role varchar(50), -- the role of the staff when this payment took place
+                            -- no foreign key, just for record.
+    constraint fk_payroll_staff foreign key (staff_account) references staff (account),
+    payment_date date,
+    constraint primary key (staff_account, payment_date),
+    salary_base double, -- this is recorded in case the staff's base salary has changed.
+    salary_bonus double, -- same reason as above
+    on_sick_leave tinyint, -- 0: false, 1: true (sick)
+    south_work_place tinyint, -- same reason in case he changed place
+    comments text
+);
+
+insert into payroll values
+('SS0001', null, 'QA staff', '2020-11-21', 2000.0, 0.1, 0, 1, null),
+('SS0001', null, 'staff', '2020-12-21', 2000.0, 0.1, 0, 1, null),
+('SS0002', null, 'QA staff', '2020-11-21', 2000.0, 0.1, 0, 1, null),
+('SS0002', null, 'staff', '2020-12-21', 2000.0, 0.1, 0, 1, null),
+
+('MS0001', null, 'QA staff', '2020-11-21', 2000.0, 0.1, 0, 1, null),
+('MS0001', null, 'QA staff', '2020-12-21', 2000.0, 0.1, 0, 1, null),
+
+('MS0002', null, 'staff', '2020-11-21', 2000.0, 0.1, 0, 1, null),
+('MS0002', null, 'QA staff', '2020-12-21', 2000.0, 0.1, 0, 1, null);
+
+create table email
+(
+	email_addr varchar(50) primary key,
+	password_md5 char(32),
+	last_pw_change date,
+	type varchar(10) -- acceptable values: 'personal', 'shared'
+);
+
+insert into email values
+('SM0001@durian.pc', null, '2020-06-22', 'personal'),
+('FM0001@durian.pc', null, '2020-06-22', 'personal'),
+('FS0001@durian.pc', null, '2020-06-22', 'personal'),
+('FS0002@durian.pc', null, '2020-06-22', 'personal'),
+('FS0003@durian.pc', null, '2020-06-22', 'personal'),
+('FS0004@durian.pc', null, '2020-06-22', 'personal'),
+('FS0005@durian.pc', null, '2020-06-22', 'personal'),
+('FS0006@durian.pc', null, '2020-06-22', 'personal'),
+('FS0007@durian.pc', null, '2020-06-22', 'personal'),
+('FS0008@durian.pc', null, '2020-06-22', 'personal'),
+('FS0009@durian.pc', null, '2020-06-22', 'personal'),
+('IR0001@durian.pc', null, '2020-06-22', 'personal'),
+('IR0002@durian.pc', null, '2020-06-22', 'personal'),
+('IR0003@durian.pc', null, '2020-06-22', 'personal'),
+('IS0001@durian.pc', null, '2020-06-22', 'personal'),
+('IS0002@durian.pc', null, '2020-06-22', 'personal'),
+('IS0003@durian.pc', null, '2020-06-22', 'personal'),
+('IS0004@durian.pc', null, '2020-06-22', 'personal'),
+('IS0005@durian.pc', null, '2020-06-22', 'personal'),
+('IS0006@durian.pc', null, '2020-06-22', 'personal'),
+('HM0001@durian.pc', null, '2020-06-22', 'personal'),
+('HS0001@durian.pc', null, '2020-06-22', 'personal'),
+('HS0002@durian.pc', null, '2020-06-22', 'personal'),
+('HS0003@durian.pc', null, '2020-06-22', 'personal'),
+('HS0004@durian.pc', null, '2020-06-22', 'personal'),
+('HS0005@durian.pc', null, '2020-06-22', 'personal'),
+('MM0001@durian.pc', null, '2020-06-22', 'personal'),
+('MS0001@durian.pc', null, '2020-06-22', 'personal'),
+('MS0002@durian.pc', null, '2020-06-22', 'personal'),
+('MS0003@durian.pc', null, '2020-06-22', 'personal'),
+('MS0004@durian.pc', null, '2020-06-22', 'personal'),
+('MS0005@durian.pc', null, '2020-06-22', 'personal'),
+('MS0006@durian.pc', null, '2020-06-22', 'personal'),
+('MS0007@durian.pc', null, '2020-06-22', 'personal'),
+('MS0008@durian.pc', null, '2020-06-22', 'personal'),
+('MS0009@durian.pc', null, '2020-06-22', 'personal'),
+('MS0010@durian.pc', null, '2020-06-22', 'personal'),
+('MS0011@durian.pc', null, '2020-06-22', 'personal'),
+('MS0012@durian.pc', null, '2020-06-22', 'personal'),
+('MS0013@durian.pc', null, '2020-06-22', 'personal'),
+('SS0001@durian.pc', null, '2020-06-22', 'personal'),
+('SS0002@durian.pc', null, '2020-06-22', 'personal'),
+('SS0003@durian.pc', null, '2020-06-22', 'personal'),
+('SS0004@durian.pc', null, '2020-06-22', 'personal'),
+('SS0005@durian.pc', null, '2020-06-22', 'personal'),
+('SS0006@durian.pc', null, '2020-06-22', 'personal'),
+('SS0007@durian.pc', null, '2020-06-22', 'personal'),
+('SS0008@durian.pc', null, '2020-06-22', 'personal'),
+('SS0009@durian.pc', null, '2020-06-22', 'personal'),
+('SS0010@durian.pc', null, '2020-06-22', 'personal'),
+('SS0011@durian.pc', null, '2020-06-22', 'personal'),
+('SS0012@durian.pc', null, '2020-06-22', 'personal'),
+('SS0013@durian.pc', null, '2020-06-22', 'personal'),
+('SS0014@durian.pc', null, '2020-06-22', 'personal'),
+('SS0015@durian.pc', null, '2020-06-22', 'personal'),
+('SS0016@durian.pc', null, '2020-06-22', 'personal'),
+('SS0017@durian.pc', null, '2020-06-22', 'personal'),
+('SS0018@durian.pc', null, '2020-06-22', 'personal'),
+('SS0019@durian.pc', null, '2020-06-22', 'personal'),
+('manager.club@durian.pc', null, '2020-06-22', 'shared'),
+('IT@durian.pc', null, '2020-06-22', 'shared'),
+('HR@durian.pc', null, '2020-06-22', 'shared'),
+('Finance@durian.pc', null, '2020-06-22', 'shared'),
+('HobbyGroups@durian.pc', null, '2020-06-22', 'shared');
+
+create table email_staff_assign
+(
+	email varchar(50),
+	account varchar(15),
+	constraint fk_assign_email foreign key (email) references email(email_addr),
+	constraint fk_assign_staff foreign key (account) references staff(account)
+);
+
+insert into email_staff_assign values
+('SM0001@durian.pc', 'SM0001'),
+('FM0001@durian.pc', 'FM0001'),
+('FS0001@durian.pc', 'FS0001'),
+('FS0002@durian.pc', 'FS0002'),
+('FS0003@durian.pc', 'FS0003'),
+('FS0004@durian.pc', 'FS0004'),
+('FS0005@durian.pc', 'FS0005'),
+('FS0006@durian.pc', 'FS0006'),
+('FS0007@durian.pc', 'FS0007'),
+('FS0008@durian.pc', 'FS0008'),
+('FS0009@durian.pc', 'FS0009'),
+('IR0001@durian.pc', 'IR0001'),
+('IR0002@durian.pc', 'IR0002'),
+('IR0003@durian.pc', 'IR0003'),
+('IS0001@durian.pc', 'IS0001'),
+('IS0002@durian.pc', 'IS0002'),
+('IS0003@durian.pc', 'IS0003'),
+('IS0004@durian.pc', 'IS0004'),
+('IS0005@durian.pc', 'IS0005'),
+('IS0006@durian.pc', 'IS0006'),
+('HM0001@durian.pc', 'HM0001'),
+('HS0001@durian.pc', 'HS0001'),
+('HS0002@durian.pc', 'HS0002'),
+('HS0003@durian.pc', 'HS0003'),
+('HS0004@durian.pc', 'HS0004'),
+('HS0005@durian.pc', 'HS0005'),
+('MM0001@durian.pc', 'MM0001'),
+('MS0001@durian.pc', 'MS0001'),
+('MS0002@durian.pc', 'MS0002'),
+('MS0003@durian.pc', 'MS0003'),
+('MS0004@durian.pc', 'MS0004'),
+('MS0005@durian.pc', 'MS0005'),
+('MS0006@durian.pc', 'MS0006'),
+('MS0007@durian.pc', 'MS0007'),
+('MS0008@durian.pc', 'MS0008'),
+('MS0009@durian.pc', 'MS0009'),
+('MS0010@durian.pc', 'MS0010'),
+('MS0011@durian.pc', 'MS0011'),
+('MS0012@durian.pc', 'MS0012'),
+('MS0013@durian.pc', 'MS0013'),
+('SS0001@durian.pc', 'SS0001'),
+('SS0002@durian.pc', 'SS0002'),
+('SS0003@durian.pc', 'SS0003'),
+('SS0004@durian.pc', 'SS0004'),
+('SS0005@durian.pc', 'SS0005'),
+('SS0006@durian.pc', 'SS0006'),
+('SS0007@durian.pc', 'SS0007'),
+('SS0008@durian.pc', 'SS0008'),
+('SS0009@durian.pc', 'SS0009'),
+('SS0010@durian.pc', 'SS0010'),
+('SS0011@durian.pc', 'SS0011'),
+('SS0012@durian.pc', 'SS0012'),
+('SS0013@durian.pc', 'SS0013'),
+('SS0014@durian.pc', 'SS0014'),
+('SS0015@durian.pc', 'SS0015'),
+('SS0016@durian.pc', 'SS0016'),
+('SS0017@durian.pc', 'SS0017'),
+('SS0018@durian.pc', 'SS0018'),
+('SS0019@durian.pc', 'SS0019'),
+('manager.club@durian.pc', 'SM0001'),
+('manager.club@durian.pc', 'FM0001'),
+('manager.club@durian.pc', 'HM0001'),
+('manager.club@durian.pc', 'MM0001');
+
+create table pc_models
+(
+    model varchar(40) primary key,
+    release_date date -- adding this just so that model doesn't look lonely :)
+);
+
+insert into pc_models values
+('DT4271', null),
+('DT4272', null),
+('LC1300P', null),
+('LC1500P', null),
+('LC1300L', null),
+('LC1301L', null);
+
+create table pc
+(
+    serial varchar(40) primary key,
+    mfg_time datetime, -- manufacture time
+    model varchar(40), -- PC model
+    constraint fk_pc_model foreign key (model) references pc_models(model),
+    qa_staff varchar(15), -- the staff (account) who checked this computer.
+                          -- null if not checked yet
+    constraint fk_pc_staff foreign key (qa_staff) references staff(account),
+    qa_time datetime, -- when is this computer checked by the QA staff.
+    sold_at varchar(100) default null,
+    constraint fk_pc_retail foreign key (sold_at) references work_place(name)
+);
+
+insert into pc values
+('2020-11-12_DT4271_0001', '2020-11-12 11:00:00', 'DT4271', 'MS0001', '2020-11-12 11:00:00', null),
+('2020-11-13_DT4271_0002', '2020-11-13 11:00:00', 'DT4271', 'MS0001', '2020-11-13 11:00:00', null),
+('2020-11-14_DT4271_0003', '2020-11-14 11:00:00', 'DT4271', 'MS0001', '2020-11-14 11:00:00', null),
+('2020-11-15_DT4271_0004', '2020-11-15 11:00:00', 'DT4271', 'MS0001', '2020-11-15 11:00:00', null),
+('2020-11-16_DT4271_0005', '2020-11-16 11:00:00', 'DT4271', 'MS0001', '2020-11-16 11:00:00', null),
+('2020-11-11_DT4272_0006', '2020-11-11 11:00:00', 'DT4272', 'MS0002', '2020-11-11 11:00:00', null),
+('2020-11-12_DT4272_0007', '2020-11-12 11:00:00', 'DT4272', 'MS0002', '2020-11-12 11:00:00', null),
+('2020-11-13_DT4272_0008', '2020-11-13 11:00:00', 'DT4272', 'MS0002', '2020-11-13 11:00:00', null),
+('2020-11-14_DT4272_0009', '2020-11-14 11:00:00', 'DT4272', 'MS0002', '2020-11-14 11:00:00', null),
+('2020-11-15_DT4272_0010', '2020-11-15 11:00:00', 'DT4272', 'MS0002', '2020-11-15 11:00:00', null),
+('2020-11-12_LC1300P_0001', '2020-11-12 11:00:00', 'LC1300P', 'MS0003', '2020-11-12 11:00:00', 'Daisy Road Retail'),
+('2020-11-13_LC1300P_0002', '2020-11-13 11:00:00', 'LC1300P', 'MS0003', '2020-11-13 11:00:00', 'Daisy Road Retail'),
+('2020-11-14_LC1300P_0003', '2020-11-14 11:00:00', 'LC1300P', 'MS0003', '2020-11-14 11:00:00', 'Jasmine Hill Retail'),
+('2020-11-15_LC1300P_0004', '2020-11-15 11:00:00', 'LC1300P', 'MS0003', '2020-11-15 11:00:00', 'Jasmine Hill Retail'),
+('2020-11-16_LC1500P_0005', '2020-11-16 11:00:00', 'LC1500P', 'MS0003', '2020-11-16 11:00:00', 'Jasmine Hill Retail'),
+('2020-11-11_LC1500P_0006', '2020-11-11 11:00:00', 'LC1500P', 'MS0003', '2020-11-11 11:00:00', 'Jasmine Hill Retail'),
+('2020-11-12_LC1300L_0007', '2020-11-12 11:00:00', 'LC1300L', 'MS0003', '2020-11-12 11:00:00', 'Jasmine Hill Retail'),
+('2020-11-13_LC1300L_0008', '2020-11-13 11:00:00', 'LC1300L', 'MS0003', '2020-11-13 11:00:00', 'Jujube Square Retail'),
+('2020-11-14_LC1500P_0009', '2020-11-14 11:00:00', 'LC1500P', 'MS0003', '2020-11-14 11:00:00', 'Jujube Square Retail'),
+('2020-11-15_LC1500P_0010', '2020-11-15 11:00:00', 'LC1500P', 'MS0003', '2020-11-15 11:00:00', 'Jujube Square Retail'),
+('2020-11-12_LC1300L_0011', '2020-11-12 11:00:00', 'LC1300L', 'SS0001', '2020-11-12 11:00:00', 'Jujube Square Retail');
+
+
+
+create table part_manufacturer
+(
+	name varchar(50) primary key,
+	tel_no int,
+	address varchar(200) -- any long enough string will do. This part is not checked strictly
+);
+
+insert into part_manufacturer values 
+('Intel', 1234, 'Intel addr'),
+('AMD', 12345, 'AMD addr'),
+('Logitech', 8888, 'logitech addr'),
+('MSI', 1234, 'MSI addr'),
+('Nvidia', 1234, 'Nvidia Addr'),
+('Samsung', 1234, 'Samsung Addr'),
+('West Digit', 1234, 'WD Addr');
+
+create table part_model
+(
+    model_no varchar(40),
+    manufacturer varchar(50),
+    part_type varchar(20),
+    constraint primary key (model_no, manufacturer),
+    constraint fk_partmodel_mfg foreign key (manufacturer) references part_manufacturer(name)
+);
+
+insert into part_model values
+('I5 2500K', 'Intel', 'CPU'),
+('I7 2700K', 'Intel', 'CPU'),
+('I3 2100K', 'Intel', 'CPU'),
+('R7 4800H', 'AMD', 'CPU'),
+('R5 3600', 'AMD', 'CPU'),
+('GTX 1080', 'Nvidia', 'GPU'),
+('RTX 2080', 'Nvidia', 'GPU'),
+('RTX 3090', 'Nvidia', 'GPU'),
+('WD10EZEX', 'West Digit', 'HDD'),
+('WD3200BPVT', 'West Digit', 'HDD'),
+('WD10EALS', 'West Digit', 'HDD');
+
+
+create table part
+(
+	serial varchar(30) primary key,
+	model_no varchar(40),
+	manufacturer varchar(50),
+	constraint fk_parts_mfg foreign key (model_no, manufacturer) references part_model(model_no, manufacturer),
+	pc_serial varchar(30), -- This links to PC. I assume that if a PC has this defective part, only this part
+	                       -- will be swapped out and replaced with a part with the same model.
+	                       -- as a result, two CPUs can link to one PC, but only one of them is not defective.
+	constraint fk_parts_pc foreign key (pc_serial) references pc (serial),
+	defective bool
+);
+
+-- insert into part values
+
+
+
+
+
+
+
+
+
+use lukewarm_durianpc;
+
+-- 1. Obtain the number of staff members working in the south region of the Lukewarm Kingdom.
+-- SELECT count(account) as number_of_staffs FROM 
+-- 	staff INNER JOIN office ON (staff.office_id = office.id)
+-- 		INNER JOIN work_place ON (office.work_place = work_place.name)
+-- WHERE
+-- 	postcode LIKE 'LS%';
+
+-- Get the pc model with the least defects and find out its part that have the most cases of defects 
+
+-- step 1. get pc models with defect part counts
+select pc.model, count(part.defective) from
+	pc inner join part on (pc.serial = part.pc_serial)
+group by pc.model;
+
+-- step 2. select pc with least defects
+select t.model from
+	(select pc.model, count(part.defective) as defect_count from
+		pc inner join part on (pc.serial = part.pc_serial)
+		group by pc.model) as t
+where
+	t.defect_count <= all (
+		select count(part.defective) from
+			pc inner join part on (pc.serial = part.pc_serial)
+			group by pc.model
+	);
+
+-- step 3. find out the count of failure parts of that pc, based on the model
+select part.model_no, count(part.serial) as part_failure_count from
+	pc inner join part on (pc.serial = part.pc_serial)
+where
+	pc.model in (
+		select t.model from
+			(select pc.model, count(part.defective) as defect_count from
+				pc inner join part on (pc.serial = part.pc_serial)
+				group by pc.model) as t
+		where
+			t.defect_count <= all (
+				select count(part.defective) from
+					pc inner join part on (pc.serial = part.pc_serial)
+					group by pc.model
+			)
+	)
+	and part.defective = 1
+group by
+	part.model_no
+order by part_failure_count desc;
+
+-- step 4. find out the part model that has the most defect counts
+-- same logic as "select pc with least defects"
+-- The statements above have not been fully tested because I didn't fill in enough data for this question
+-- It requires way too much information to test, and this is why I decided to remove it from the part 2
+
+
+-- Get the retail store(s) that has sold the most amount of powerhouse laptops.
+-- In the result, list the name(s) of the retail store(s) and the amount sold (for each, if multiple retail stores a found).
+select * from
+	(select wp.name, count(pc.serial) as quantity from 
+		pc inner join work_place wp on (pc.sold_at = wp.name)
+	where
+		wp.is_retail = 1 and pc.model like 'LC%P'
+	group by
+		wp.name) as t
+where
+	t.quantity >= 
+		all (select count(t1.serial) from 
+				pc t1 inner join work_place t2 on (t1.sold_at = t2.name)
+			where
+				t2.is_retail = 1 and t1.model like 'LC%P'
+			group by
+				t2.name);
+
+
+
+-- Get the staff names and the departments associated with the email account "manager.club@durian.pc".
+select staff.name, dept_role.dept_name from 
+	email_staff_assign
+		inner join staff on (email_staff_assign.account = staff.account)
+		inner join staff_role on (staff.account = staff_role.staff_account)
+		inner join dept_role on (staff_role.role_id = dept_role.id)
+where
+	email_staff_assign.email = 'manager.club@durian.pc';
+
+-- List all staff members in the finance department 
+-- whose current baseline salary is higher than the highest base salary of the sales department.
+select staff.name, staff.current_salary_base from
+	staff inner join staff_role on (staff.account = staff_role.staff_account)
+		inner join dept_role on (staff_role.role_id = dept_role.id)
+where
+	dept_role.dept_name = 'Finance' and staff.current_salary_base > all (
+		select staff.current_salary_base from 
+			staff inner join staff_role on (staff.account = staff_role.staff_account)
+				inner join dept_role on (staff_role.role_id = dept_role.id)
+		where
+			dept_role.dept_name = 'Sales'
+	);
+
+-- Get the list of email accounts for those who work 
+--    in an office alone (share no office with others).
+--    No duplicate names are allowed in the result.
+select distinct email_staff_assign.email from
+	(staff as s1 inner join office on (s1.office_id = office.id)
+		inner join email_staff_assign on (s1.account = email_staff_assign.account))
+		inner join email on (email_staff_assign.email = email.email_addr)
+where
+	s1.name = all(select s2.name from staff as s2 where s1.office_id = s2.office_id);
+-- and email.`type` = 'personal';
+
+-- Get the difference between the highest baseline salary value and 
+-- the second highest baseline salary value of all staff members. 
+select max(s2.current_salary_base)- max(s1.current_salary_base) as difference from 
+	staff as s1, staff as s2
+where
+	s1.current_salary_base < (select max(s3.current_salary_base) from staff as s3);
+
+-- Get the list of all staff members who once did quality checking in the factory,
+--    but then changed to a different role and have worked as the new role for at least for one month.
+-- !!! you cannot use payroll.staff_role, because that does not indicate that the staff actually checked something.
+select distinct staff.name, staff.account from 
+	pc inner join staff on (pc.qa_staff = staff.account)
+		inner join payroll on (staff.account = payroll.staff_account)
+		inner join staff_role on (staff.account = staff_role.staff_account)
+		inner join dept_role on (staff_role.role_id = dept_role.id)
+where
+	dept_role.name <> 'QA staff' and payroll.payment_date > pc.qa_time;
+
+-- three consecutive
+drop table if exists staff_awards;
+create table staff_awards 
+(
+	staff varchar(50),
+	outstanding_month int
+);
+
+insert into staff_awards values
+('Tessa Payne', 5),
+('Tessa Payne', 6),
+('Lily Adel', 1),
+('Lily Adel', 2),
+('Tessa Payne', 8),
+('Lily Adel', 3),
+('Tessa Payne', 9);
+
+select distinct a1.staff from 
+	staff_awards a1, staff_awards a2, staff_awards a3
+where
+	(a1.staff = a2.staff and a2.staff = a3.staff)
+	and 
+	a1.outstanding_month + 1 = a2.outstanding_month 
+	and
+	a1.outstanding_month + 2 = a3.outstanding_month
+
+-- Calculate the final salary of all staffs. 
+-- In the result, list staff names and their final salary, 
+-- taking all factors like bonuses, work-in-south bonuses (10%)
+-- and sick leave penalties (90%) into account.
+
+select 
+	account,
+	current_salary_base + bonus + south_bonus - sick_deduction as final_salary 
+from
+	(select
+		staff.account, staff.current_salary_base,
+		staff.current_salary_base * staff.current_salary_bonus as bonus,
+		staff.current_salary_base * (t.is_south * 0.1) as south_bonus,
+		(staff.current_salary_base + 
+			staff.current_salary_base * staff.current_salary_bonus +
+			staff.current_salary_base * (t.is_south * 0.1)) * (staff.is_on_sick_leave * 0.1) as sick_deduction,
+		staff.is_on_sick_leave
+	from 
+		(work_place 
+			natural join (select name, 1 as is_south from work_place where postcode like 'LS%'
+							union
+							select name, 0 as is_south from work_place where postcode not like 'LS%') as t)
+			inner join office on office.work_place = work_place.name
+			inner join staff on office.id = staff.office_id
+	) as temp;
+
+
+-- alternative solution
+select 
+	account,
+	current_salary_base + bonus + south_bonus - sick_deduction as final_salary 
+from
+	(select
+		staff.account, staff.current_salary_base,
+		staff.current_salary_base * staff.current_salary_bonus as bonus,
+		staff.current_salary_base * (t.is_south * 0.1) as south_bonus,
+		(staff.current_salary_base + 
+			staff.current_salary_base * staff.current_salary_bonus +
+			staff.current_salary_base * (t.is_south * 0.1)) * (staff.is_on_sick_leave * 0.1) as sick_deduction
+	from 
+		(work_place 
+			natural join (select name, postcode like 'LS%' as is_south from work_place) as t)
+			inner join office on office.work_place = work_place.name
+			inner join staff on office.id = staff.office_id
+	) as temp;

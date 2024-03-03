@@ -1,0 +1,177 @@
+-- Script for lab2
+-- Author: Jianjun Chen (jianjun.chen@xjtlu.edu.cn)
+create database if not exists jianjun;
+use jianjun;
+
+
+-- Recreate data from lab 1
+drop table if exists `activity`, `module_enrollment`, `student`, `modules`, `teachers`;
+
+create table `teachers`
+(
+    `id` int primary key, -- we will add primary key later. NOT NULL and UNIQUE is not needed.
+    `name` varchar(200) not null,
+    `tel_no` varchar(40),  -- not using INT here as we have numbers like +44
+    `office` varchar(15) not null
+);
+
+create table `modules`
+(
+    `code` varchar(10) primary key,
+    `title` varchar(100) not null,
+    `teacher_id` int,
+     constraint fk_module_teacher foreign key (`teacher_id`) references `teachers` (`id`)
+);
+
+create table `student`
+(
+    `id` int(6) primary key,
+    `name` varchar(200) not null,
+    `email` varchar(100) not null
+);
+
+create table module_enrollment
+(
+    `enrollment_id` int primary key, -- this column is optional.
+    `module_code` varchar(10),
+    `student_id` int(6),
+    constraint fk_enrollment_module foreign key (`module_code`) references `modules` (`code`),
+    constraint fk_enrollment_student foreign key (`student_id`) references `student` (`id`)
+);
+
+create table activity
+(
+    `name` varchar(100) primary key,
+    `student_id` int(6),
+    `description` varchar(255),
+    constraint fk_activity_student foreign key (`student_id`) references `student` (`id`)
+);
+
+insert into `teachers` values (6503399, 'John Drake', '12022017202020', 'SD-766');
+insert into `modules` values ('HCI-101', 'Human Computer Interaction', 6503399);
+
+insert into `teachers` values (7614411, 'Felicia Gomez', '1024', 'BES-207');
+insert into `modules` values ('HSB', 'Haskell for Beginners', 7614411);
+
+insert into `teachers` values (5899114, 'John Cartwright', '12345 ext 1212', 'BES-201');
+insert into `modules` values ('MC1', 'Mathematics', 5899114);
+
+insert into `teachers` values (7099543, 'Dave Moe', 'BES-205', '65432 ext 2121');
+insert into `modules` values ('MC2', 'Advanced Mathematics', 7099543);
+
+
+-- Lab2 script starts here
+-- 1.	Nuno Bloggs (156123) studies HSB and HCI-101. His email is nuno@bloggs.com.
+-- 2.	John Trump (156897) studies HSB, MC1. His email is John@trump.com.
+-- 3.	Lidia Elliott (123987) studies no modules at present. Her email is Lidia@gmail.com.
+-- 4.	Alicia Smith (777123) studies MC2. Her email address is Alicia123@456.com.
+-- 5.	Sophie Johns (127845) studies HSB, HCI-101 and MC2. Her email address is S.Johns@nott.edu.cn.
+
+insert into `student` values 
+(156123,'Nuno Bloggs','nuno@bloggs.com'),
+(156897,'John Trump','John@trump.com'),
+(123987,'Lidia Elliott','Lidia@gmail.com'),
+(777123,'Alicia Smith','Alicia123@456.com'),
+(127845,'Sophie Johns','S.Johns@nott.edu.cn');
+
+
+insert into `module_enrollment` values
+(1,'HSB',156123),
+(2,'HCI-101',156123),
+(3,'HSB',156897),
+(4,'MC1',156897),
+(5,'MC2',156897),
+(6,'MC2',777123),
+(7,'HSB',127845),
+(8,'HCI-101',127845),
+(9,'MC1',127845),
+(10,'MC2',127845);
+
+-- 1.	Print the Names of all Teachers.
+select name from teachers;
+
+-- 2.	Retrieve all students and all of the information held about them (excluding enrolment).
+select * from student;
+
+-- 3.	Retrieve the student ID’s who study MC2.
+select distinct id from student, module_enrollment 
+	where student.id = module_enrollment.student_id and module_code = 'MC2';
+
+-- 4.	Retrieve the list of student ID’s, names and email address for students who study HCI-101.
+--         Your results should not include duplicates or incorrect information.
+select distinct id, name, email 
+	from student s, module_enrollment me 
+	where s.id = me.student_id and me.module_code = 'HCI-101';
+
+-- 5.	Retrieve the Names of students who do not take the module ‘MC1’
+select distinct s.name from student s left outer join module_enrollment me on s.id = me.student_id
+	where s.name not in (
+		select s.name from student s, module_enrollment me
+			where s.id = me.student_id and me.module_code = 'MC1'
+	)
+
+-- 6.	Retrieve the Names and Emails of students who study both ‘MC1’ and ‘MC2’. 
+select s.name, s.email from student s, module_enrollment me 
+	where s.id = me.student_id and me.module_code = 'MC1'
+	and s.name in (
+		select s.name from student s, module_enrollment me
+			where s.id = me.student_id and me.module_code = 'MC2'
+	);
+
+select s.name, s.email from student s, module_enrollment me1, module_enrollment me2
+	where s.id = me1.student_id and s.id = me2.student_id
+    and me1.module_code = 'MC1'
+	and me2.module_code = 'MC2'
+	
+-- 7.	Retrieve the Names and Telephone Numbers of lecturers whose office is in the ‘BES’ building.
+select name, tel_no from teachers where office like 'BES%';
+
+
+Additional exercise
+
+-- 8. Retrieve the IDs of students who take the module 'MC1' OR 'MC2'.
+select id from module_enrollment where module_code in ('MC1', 'MC2');
+
+-- 9.  Retrieve the Names and Emails of students who study in 'MC1' OR 'MC2'. 
+select distinct s.name, s.email from student s, module_enrollment me 
+	where s.id = me.student_id and me.module_code = 'MC2'
+	or s.name in (
+		select s.name from student s, module_enrollment me
+			where s.id = me.student_id and me.module_code = 'MC1'
+	);
+
+select distinct s.name, s.email from student s, module_enrollment me 
+	where s.id = me.student_id and me.module_code IN ('MC1','MC2');
+
+-- 10.  Retrieve the Names and Emails of students whose email is not ended with '@gmail.com'.
+select name, email from student where email not like '%gmail.com';
+
+
+-- 11. Identify if there is any student who enrolled in HSB, HCI-101 and MC2 and Retrieve the Names and ID of them.
+select distinct s.name, s.email from student s, module_enrollment me1, module_enrollment me2, module_enrollment me3
+	where s.id = me1.student_id and s.id = me2.student_id and s.id=me3.student_id
+    and me1.module_code = 'HSB'
+	and me2.module_code = 'MC2'
+    and me3.module_code = 'HCI-101'
+
+
+-- 12. Retrieve the ID and Names of students whose name includes 'ia'
+select id, name from student where name like '%ia%';
+
+-- 13. Retrieve the Names and Emails of students who study not in 'MC1' OR 'MC2' OR 'HCI-101'. 
+select distinct s.name from student s left outer join module_enrollment me on s.id = me.student_id
+	where s.name not in (
+		select s.name from student s, module_enrollment me
+			where s.id = me.student_id and me.module_code = 'MC1' OR s.id = me.student_id and me.module_code = 'MC2' OR s.id = me.student_id and me.module_code = 'HCI-101'
+	)
+
+SELECT distinct s.name FROM student WHERE ID IN (SELECT student_id FROM `module_enrollment` WHERE module_code not in ('MC1','MC2','HCI-101') ); wrong
+
+select distinct s.name from student s WHERE id not in (select DISTINCT s.id from student s, module_enrollment me1, module_enrollment me2, module_enrollment me3
+	where s.id = me1.student_id and s.id = me2.student_id and s.id=me3.student_id
+    and (me1.module_code = 'MC1'
+	or me2.module_code = 'MC2'
+    or me3.module_code = 'HCI-101') );
+
+
+

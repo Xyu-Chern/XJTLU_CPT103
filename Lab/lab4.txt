@@ -1,0 +1,112 @@
+-- resit.cleaner_teams definition
+
+CREATE TABLE `cleaner_teams` (
+  `team_id` int(11) NOT NULL,
+  PRIMARY KEY (`team_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.floors definition
+
+CREATE TABLE `floors` (
+  `floor_no` int(11) NOT NULL,
+  `floor_type` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`floor_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.manufacturers definition
+
+CREATE TABLE `manufacturers` (
+  `manufacturer_name` varchar(100) NOT NULL,
+  `tel` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`manufacturer_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.room_service_records definition
+
+CREATE TABLE `room_service_records` (
+  `team_leader_name` varchar(100) DEFAULT NULL,
+  `room_no` int(11) DEFAULT NULL,
+  `service_date` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.workdays definition
+
+CREATE TABLE `workdays` (
+  `work_day` varchar(9) NOT NULL,
+  PRIMARY KEY (`work_day`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.appliance_list definition
+
+CREATE TABLE `appliance_list` (
+  `appliance_name` varchar(100) NOT NULL,
+  `manufacturer_name` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`appliance_name`),
+  KEY `appliance_list_fk` (`manufacturer_name`),
+  CONSTRAINT `appliance_list_fk` FOREIGN KEY (`manufacturer_name`) REFERENCES `manufacturers` (`manufacturer_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.cleaners definition
+
+CREATE TABLE `cleaners` (
+  `cleaner_id` int(11) NOT NULL,
+  `cleaner_name` varchar(100) NOT NULL,
+  `isleader` tinyint(1) NOT NULL,
+  `team_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`cleaner_id`),
+  KEY `cleaners_fk` (`team_id`),
+  CONSTRAINT `cleaners_fk` FOREIGN KEY (`team_id`) REFERENCES `cleaner_teams` (`team_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.rooms definition
+
+CREATE TABLE `rooms` (
+  `room_no` int(11) NOT NULL,
+  `floor_no` int(11) DEFAULT NULL,
+  PRIMARY KEY (`room_no`),
+  KEY `rooms_fk` (`floor_no`),
+  CONSTRAINT `rooms_fk` FOREIGN KEY (`floor_no`) REFERENCES `floors` (`floor_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.team_floor_assign definition
+
+CREATE TABLE `team_floor_assign` (
+  `team_id` int(11) DEFAULT NULL,
+  `floor_no` int(11) DEFAULT NULL,
+  KEY `team_floor_assign_fk` (`team_id`),
+  KEY `team_floor_assign_fk_1` (`floor_no`),
+  CONSTRAINT `team_floor_assign_fk` FOREIGN KEY (`team_id`) REFERENCES `cleaner_teams` (`team_id`),
+  CONSTRAINT `team_floor_assign_fk_1` FOREIGN KEY (`floor_no`) REFERENCES `floors` (`floor_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.team_workdays definition
+
+CREATE TABLE `team_workdays` (
+  `team_id` int(11) DEFAULT NULL,
+  `workday` varchar(9) DEFAULT NULL,
+  KEY `teamworkdays_fk` (`team_id`),
+  KEY `teamworkdays_fk_1` (`workday`),
+  CONSTRAINT `teamworkdays_fk` FOREIGN KEY (`team_id`) REFERENCES `cleaner_teams` (`team_id`),
+  CONSTRAINT `teamworkdays_fk_1` FOREIGN KEY (`workday`) REFERENCES `workdays` (`work_day`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- resit.room_appliance definition
+
+CREATE TABLE `room_appliance` (
+  `room_no` int(11) DEFAULT NULL,
+  `appliance_name` varchar(100) DEFAULT NULL,
+  KEY `room_appliance_fk` (`room_no`),
+  KEY `room_appliance_fk_1` (`appliance_name`),
+  CONSTRAINT `room_appliance_fk` FOREIGN KEY (`room_no`) REFERENCES `rooms` (`room_no`),
+  CONSTRAINT `room_appliance_fk_1` FOREIGN KEY (`appliance_name`) REFERENCES `appliance_list` (`appliance_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
